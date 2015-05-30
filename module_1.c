@@ -14,6 +14,8 @@ struct Instruction
 
 };
 
+int codeSize = 0;
+int buffer = 0;
 int sp = 0;
 int bp = 1;
 int pc = 0;
@@ -26,7 +28,7 @@ int main()
 {
     initArray();
     load();
-    //testFunction();
+   // testFunction();
     while(!isDone())
     {
         fetch();
@@ -41,47 +43,40 @@ void load()
     stack[1] = 0;
     stack[2] = 0;
     stack[3] = 0;
-    takingInput();
+    getCode();
     fclose(codeFile);
 }
 
-void takingInput()
+void getCode()
 {
     int i = 0;
-    int x, y;
-
     codeFile = fopen("mcode.txt", "r");
-    if(!codeFile)
+    while(fscanf(codeFile, "%d", &buffer)!=EOF)
     {
-        printf("Error in opening the file.");
-        exit(0);
-
-    }
-
-    while ((x = fgetc(codeFile)) != EOF)
-    {
+        code[i]=buffer;
+        codeSize++;
+        printf("%d", code[i]);
+        i++;
         if(i % 3 == 0)
             printf("\n");
-        if((int)x == 32 || (int)x == 10)
-            continue;
-        x -= 48;
-        if(x == 1)
-        if((y = (int)fgetc(codeFile)) != 32  )
-            x = 10 + (y - 48);
-        code[i] = x;
-      /*printf("%d",code[i]);*/
-        i ++;
+
     }
 }
 
 void fetch ()
 {
     getInstruction();
+    printf("%d,",code[pc]);
+    printf("%d,",code[pc + 1]);
+    printf("%d \n",code[pc + 2]);
+    printf("the pc before next is %d \n",pc);
     pc += NEXT_INSTRUCTION;
+    printf("After it is %d \n",pc);
 }
 
 void getInstruction()
 {
+    printf("during the fetch pc is %d \n",pc);
     ir.op = code[pc];
     ir.l = code[pc + 1];
     ir.m =  code[pc + 2];
@@ -99,7 +94,52 @@ int isDone ()
 
 void execute()
 {
-    printf("This is when the code will be executed.\n");
+    switch ( ir.op)
+        {
+        //lit
+        case 1:
+            lit(ir.m);
+            break;
+        // opr will require another sub-function to decide
+        // which operation to run
+        case 2:
+            opr();
+            break;
+        //lod
+        case 3:
+            lod(ir.l, ir.m);
+            break;
+        //sto
+        case 4:
+            sto(ir.l, ir.m);
+            break;
+        //cal
+        case 5:
+            cal(ir.l, ir.m);
+            break;
+        //inc
+        case 6:
+            inc(ir.m);
+            break;
+        //jmp
+        case 7:
+            jmp(ir.m);
+            break;
+        //jpc
+        case 8:
+            jpc(ir.m);
+            break;
+        //sio
+        //this will require another sub function to decide
+        //which i/o to run
+        case 9:
+            sio();
+            break;
+
+        default:
+            printf("OP code input was invalid. ");
+            sio3();
+        }
 }
 //initializes the stack and code arrays.
 void initArray()
@@ -120,6 +160,7 @@ int getBase(int level, int base)
     return base;
 }
 
+//this is simply a push function
 void lit (int pushValue)
 {
     sp ++;
@@ -128,11 +169,250 @@ void lit (int pushValue)
 
 void testFunction()
 {
-    stack[sp] = 8;
-    printf("%d\n", stack[sp]);
-    lit(9);
-    printf("%d\n", stack[sp]);
-
+    printf("%d", 3 == 4);
+    sio3();
 }
 
+//lod function will do 3 things
+//get the base value L levels down
+//grab the number at offset M
+//push that number
+void lod (int levels, int offset)
+{
+    int base = getBase(levels, bp);
+    int value = stack[base + offset];
+    lit(value);
+}
+
+//this function is simply a store function
+void sto (int levels, int offset)
+{
+    int base = getBase(levels, bp);
+    stack [base + offset] = stack[sp];
+    sp --;
+}
+
+void cal (int levels, int pro_Location)
+{
+    stack[sp + 1] = 0;
+    stack[sp + 2] = getBase(levels, bp);
+    stack[sp + 3] = bp;
+    stack[sp + 4] = pc;
+    bp = sp + 1;
+    pc = pro_Location * NEXT_INSTRUCTION;
+}
+
+void inc (int space)
+{
+    sp += space;
+}
+
+void jmp (int jumpSpot)
+{
+    pc = NEXT_INSTRUCTION * jumpSpot;
+}
+
+void jpc (int jumpSpot)
+{
+    if (stack[sp] == 0)
+        pc = NEXT_INSTRUCTION * jumpSpot;
+    sp --;
+}
+
+//this is the first standard i/o function which will pop and print
+void sio1()
+{
+    printf("%d" ,stack[sp]);
+    sp --;
+}
+
+//the second i/o function will take in input and push it to the top of the stack
+void sio2()
+{
+    int input;
+    scanf("%d" ,&input);
+    lit(input);
+}
+
+//Third standard i/o halts the system
+void sio3()
+{
+    exit(0);
+}
+
+void ret ()
+{
+    sp = bp - 1;
+    pc = stack[sp + 4];
+    bp = stack[sp + 3];
+}
+
+void neg ()
+{
+    stack[sp] = -stack[sp];
+}
+
+void add ()
+{
+    sp --;
+    stack[sp] = stack[sp] + stack[sp + 1];
+}
+
+void sub ()
+{
+    sp --;
+    stack[sp] = stack[sp] - stack[sp + 1];
+}
+
+void mul ()
+{
+    sp --;
+    stack[sp] = stack[sp] - stack[sp + 1];
+}
+
+void divid()
+{
+    sp --;
+    stack[sp] = stack[sp] / stack[sp + 1];
+}
+
+void mod ()
+{
+    sp --;
+    stack[sp] = stack[sp] % stack[sp + 1];
+}
+
+void eql ()
+{
+    sp --;
+    stack[sp] = stack[sp] == stack[sp + 1];
+}
+
+void neq ()
+{
+    sp --;
+    stack[sp] = stack[sp] != stack[sp + 1];
+}
+
+void lss ()
+{
+    sp --;
+    stack[sp] = stack[sp] < stack[sp + 1];
+}
+
+void leq ()
+{
+    sp --;
+    stack[sp] = stack[sp] <= stack[sp + 1];
+}
+
+void gtr ()
+{
+    sp --;
+    stack[sp] = stack[sp] > stack[sp + 1];
+}
+
+void geq ()
+{
+    sp --;
+    stack[sp] = stack[sp] >= stack[sp + 1];
+}
+
+void odd()
+{
+    stack[sp] = stack[sp] % 2;
+}
+
+void opr()
+{
+    switch ( ir.m)
+    {
+        //rtn
+        case 0:
+            ret();
+            break;
+        //neg
+        case 1:
+            neg();
+            break;
+       //add
+        case 2:
+            add();
+            break;
+       //sub
+        case 3:
+            sub();
+            break;
+        //mul
+        case 4:
+            mul();
+            break;
+        //div
+        case 5:
+            divid();
+            break;
+        //odd
+        case 6:
+            odd();
+            break;
+        //mod
+        case 7:
+            mod();
+            break;
+        //eql
+        case 8:
+            eql();
+            break;
+        //neq
+        case 9:
+            neq();
+            break;
+        //lss
+        case 10:
+            lss();
+            break;
+        //leq
+        case 11:
+            leq();
+            break;
+        //gtr
+        case 12:
+            gtr();
+            break;
+        //geq
+        case 13:
+            geq();
+            break;
+
+        default:
+            printf("OP code input was invalid. ");
+            sio3();
+    }
+}
+
+void sio()
+{
+    switch ( ir.m)
+    {
+        //output to the screen
+        case 1:
+            sio1();
+            break;
+
+        //take input
+        case 2:
+            sio2();
+            break;
+
+        //halt
+        case 3:
+            sio3();
+            break;
+
+        default:
+            printf("OP code input was invalid. ");
+            sio3();
+    }
+
+}
 

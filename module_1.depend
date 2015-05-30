@@ -1,0 +1,8 @@
+# depslib dependency file v1.0
+1433022393 source:c:\users\eric\cop 3402 projects\module_1\module_1.c
+	<stdlib.h>
+	<stdio.h>
+	"module_1.h"
+
+1433021716 c:\users\eric\cop 3402 projects\module_1\module_1.h
+
