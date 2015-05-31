@@ -14,6 +14,8 @@ struct Instruction
 
 };
 
+int lexiLevel = 0;
+int partition = 0;
 int codeSize = 0;
 int buffer = 0;
 int sp = 0;
@@ -22,14 +24,18 @@ int pc = 0;
 int stack [MAX_STACK_HEIGHT ];
 int code [MAX_CODE_LENGTH ];
 FILE *codeFile;
+FILE *output;
+char *opString;
 struct Instruction ir;
 
 int main()
 {
+    output = fopen("output.txt", "w");
     initArray();
     load();
-   // testFunction();
-    while(!isDone())
+    //testFunction();
+    format2();
+    while(1==1)
     {
         fetch();
         execute();
@@ -44,7 +50,23 @@ void load()
     stack[2] = 0;
     stack[3] = 0;
     getCode();
+    format();
     fclose(codeFile);
+}
+
+void format ()
+{
+    fprintf(output,"Line\t");
+    fprintf(output,"OP\t");
+    fprintf(output,"L\t");
+    fprintf(output,"M\n");
+    for(int i = 0; i < codeSize; i ++)
+    {
+        if(i % 3 == 0)
+        {
+            fprintf(output, "%d\t%s\t%d\t%d\n", i/3, getOpString(code[i]), code[i + 1], code[i + 2]);
+        }
+    }
 }
 
 void getCode()
@@ -55,39 +77,93 @@ void getCode()
     {
         code[i]=buffer;
         codeSize++;
-        printf("%d", code[i]);
+        //testing purposes
+        //printf("%d", code[i]);
         i++;
         if(i % 3 == 0)
             printf("\n");
-
     }
 }
 
 void fetch ()
 {
     getInstruction();
-    printf("%d,",code[pc]);
-    printf("%d,",code[pc + 1]);
-    printf("%d \n",code[pc + 2]);
-    printf("the pc before next is %d \n",pc);
-    pc += NEXT_INSTRUCTION;
-    printf("After it is %d \n",pc);
+    pc ++;
+    //printf("After it is %d \n",pc);
 }
 
+void format2()
+{
+    fprintf(output, "\t\t\t\tpc\t\tbp\tsp\tstack\n");
+    fprintf(output, "Initial Values\t\t\t0\t\t1\t0\n");
+
+}
 void getInstruction()
 {
-    printf("during the fetch pc is %d \n",pc);
-    ir.op = code[pc];
-    ir.l = code[pc + 1];
-    ir.m =  code[pc + 2];
-    printf("%d,",code[pc]);
-    printf("%d,",code[pc + 1]);
-    printf("%d \n",code[pc + 2]);
+    //For testing purposes
+    //printf("during the fetch pc is %d \n",pc);
+    //print out the instruction number, opcode string, l, and m.
+    ir.op = code[pc * NEXT_INSTRUCTION];
+    ir.l = code[pc * NEXT_INSTRUCTION + 1];
+    ir.m =  code[pc * NEXT_INSTRUCTION + 2];
+    opString = getOpString(ir.op);
+    fprintf(output, "%d\t%s\t%d\t%d", pc, opString, ir.l, ir.m );
+}
+
+char *getOpString(int op)
+{
+    switch (op)
+        {
+        //lit
+        case 1:
+            return "lit";
+            break;
+        // opr will require another sub-function to decide
+        // which operation to run
+        case 2:
+            return "opr";
+            break;
+        //lod
+        case 3:
+            return "lod";
+            break;
+        //sto
+        case 4:
+            return "sto";
+            break;
+        //cal
+        case 5:
+            return "cal";
+            break;
+        //inc
+        case 6:
+            return "inc";
+            break;
+        //jmp
+        case 7:
+            return "jmp";
+            break;
+        //jpc
+        case 8:
+            return "jpc";
+            break;
+        //sio
+        //this will require another sub function to decide
+        //which i/o to run
+        case 9:
+            return "sio";
+            break;
+
+        default:
+            fprintf(output, "OP code input was invalid. ");
+            sio3();
+        }
+
 }
 
 int isDone ()
 {
-    if(code[pc] == 9 && code[pc + 2] == 3)
+    if(code[pc * NEXT_INSTRUCTION] == 9 && code[pc * NEXT_INSTRUCTION + 2] == 3)
         return 1;
     return 0;
 }
@@ -137,9 +213,13 @@ void execute()
             break;
 
         default:
-            printf("OP code input was invalid. ");
+            fprintf(output, "OP code input was invalid. ");
             sio3();
         }
+        //print pc, bp, sp
+        //use loop to print stack
+        fprintf(output, "\t%d\t\t%d\t%d\t", pc, bp, sp);
+        stackPrint();
 }
 //initializes the stack and code arrays.
 void initArray()
@@ -169,8 +249,7 @@ void lit (int pushValue)
 
 void testFunction()
 {
-    printf("%d", 3 == 4);
-    sio3();
+    printf(" the very last number should be 3? = %d", code[50]);
 }
 
 //lod function will do 3 things
@@ -199,23 +278,24 @@ void cal (int levels, int pro_Location)
     stack[sp + 3] = bp;
     stack[sp + 4] = pc;
     bp = sp + 1;
-    pc = pro_Location * NEXT_INSTRUCTION;
+    pc = pro_Location;
 }
 
 void inc (int space)
 {
     sp += space;
+    lexiLevel ++;
 }
 
 void jmp (int jumpSpot)
 {
-    pc = NEXT_INSTRUCTION * jumpSpot;
+    pc = jumpSpot;
 }
 
 void jpc (int jumpSpot)
 {
     if (stack[sp] == 0)
-        pc = NEXT_INSTRUCTION * jumpSpot;
+        pc = jumpSpot;
     sp --;
 }
 
@@ -237,7 +317,46 @@ void sio2()
 //Third standard i/o halts the system
 void sio3()
 {
+    fprintf(output, "\t%d\t\t%d\t%d\t", pc, bp, sp);
+    stackPrint();
     exit(0);
+}
+
+void stackPrint()
+{
+    if(lexiLevel == 1)
+    {
+        for(int i = 1; i <= sp; i ++)
+            fprintf(output, "%d ", stack[i]);
+        fprintf(output, "\n");
+
+    }
+    else if(lexiLevel == 2)
+    {
+        for(int i = 1; i <= sp; i ++)
+        {
+            if(i == bp)
+                fprintf(output, "| ");
+            fprintf(output, "%d ", stack[i]);
+
+        }
+        fprintf(output, "\n");
+    }
+    else
+    {
+       int base = getBase(1, bp);
+       for(int i = 1; i <= sp; i ++)
+        {
+            if(i == bp || base)
+                fprintf(output, "| ");
+            fprintf(output, "%d ", stack[i]);
+
+        }
+        fprintf(output, "\n");
+
+    }
+
+
 }
 
 void ret ()
@@ -245,6 +364,7 @@ void ret ()
     sp = bp - 1;
     pc = stack[sp + 4];
     bp = stack[sp + 3];
+    lexiLevel --;
 }
 
 void neg ()
@@ -385,7 +505,7 @@ void opr()
             break;
 
         default:
-            printf("OP code input was invalid. ");
+            fprintf(output, "OP code input was invalid. ");
             sio3();
     }
 }
@@ -410,9 +530,11 @@ void sio()
             break;
 
         default:
-            printf("OP code input was invalid. ");
+            fprintf(output, "OP code input was invalid. ");
             sio3();
     }
 
 }
+
+
 

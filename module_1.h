@@ -3,8 +3,7 @@
 
 /*add prototypes here*/
 void load();
-void takingInput();
-void getCode();
+void getCode();//changes pc
 void fetch ();
 void getInstruction();
 int isDone ();
@@ -15,14 +14,14 @@ void testFunction();//testing purposes
 void lit (int pushValue);
 void lod (int levels, int offset);
 void sto (int levels, int offset);
-void cal (int levels, int pro_Location);
+void cal (int levels, int pro_Location);//changes pc
 void inc (int space);
-void jmp (int jumpSpot);
-void jpc (int jumpSpot);
+void jmp (int jumpSpot);//changes pc
+void jpc (int jumpSpot);//changes pc
 void sio1();
 void sio2();
 void sio3();
-void ret ();
+void ret ();//changes pc
 void neg ();
 void add ();
 void sub ();
@@ -38,6 +37,10 @@ void gtr ();
 void geq ();
 void opr();
 void sio();
+char *getOpString();
+void format2();
+void stackPrint();
+void format ();
 
 
 
